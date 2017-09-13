@@ -56,16 +56,31 @@ describe('Redfish Systems Root', function () {
         ]
     };
 
-    // var dellNodeObm ={
-    //     id: "DELL574dcd5794ab6e2506fd107a",
-    //     node: "DELLabcd1234abcd1234abcd",
-    //     service: 'ipmi-obm-service',
-    //     config: {
-    //         host: '1.2.3.4',
-    //         user: 'myuser',
-    //         password: 'mypass'
-    //    }
-    // };
+    var ucsNode = {
+        autoDiscover: false,
+        id: '5994f712d0e1e80257af9ff3',
+        name: 'name',
+        identifiers: ['10.240.19.70:sys/rack-unit-2'],
+        tags: [],
+        obms: [{ obm: '/api/2.0/obms/574dcd5794ab6e2506fd107a'}],
+        type: 'compute',
+        relations: [
+            {
+                "relationType":"enclosedBy",
+                "targets":["5994f71bd0e1e80257af9ff7"]
+            }
+        ]
+    };
+    var dellNodeObm ={
+        id: "DELL574dcd5794ab6e2506fd107a",
+        node: "DELLabcd1234abcd1234abcd",
+        service: 'dell-wsman-obm-service',
+        config: {
+            host: '1.2.3.4',
+            user: 'myuser',
+            password: 'mypass'
+       }
+    };
 
     var dellNode = {
         autoDiscover: false,
@@ -82,7 +97,6 @@ describe('Redfish Systems Root', function () {
             }
         ]
     };
-
 
     // Skip reading the entry from Mongo and return the entry directly
     function redirectGet(entry) {
@@ -119,6 +133,7 @@ describe('Redfish Systems Root', function () {
         this.sandbox.stub(view, "get", redirectGet);
         this.sandbox.spy(redfish, 'render');
         this.sandbox.spy(redfish, 'validateSchema');
+        this.sandbox.spy(redfish, 'handleError');
         this.sandbox.spy(validator, 'validate');
         this.sandbox.stub(waterline.nodes);
         this.sandbox.stub(waterline.catalogs);
@@ -146,7 +161,9 @@ describe('Redfish Systems Root', function () {
         waterline.catalogs.findLatestCatalogOfSource.rejects(new Errors.NotFoundError());
         nodeApi.setNodeWorkflowById.resolves({instanceId: 'abcdef'});
 
+        waterline.obms.findByNode.resolves(undefined);
         waterline.obms.findByNode.withArgs(node.id, 'ipmi-obm-service', true).resolves(Promise.resolve(nodeObm));
+        waterline.obms.findByNode.withArgs(dellNode.id, 'dell-wsman-obm-service', true).resolves(Promise.resolve(dellNodeObm));
 
         mktemp.createFile.withArgs('/nfs/XXXXXX.xml')
         .resolves(Promise.resolve('/nfs/file.xml'));
@@ -268,6 +285,66 @@ describe('Redfish Systems Root', function () {
                 "Upgrade": "<OUT OF SPEC>",
                 Version: "Not Specified",
                 "Voltage": "Unknown"
+            }
+        ],
+        "smart": [
+            {
+                "Controller": {
+                    "controller_PCI_BDF": "0000:03:00.0",
+                    "controller_name": "LSI Logic / Symbios Logic MegaRAID SAS-3 3108 [Invader] (rev 02)",
+                    "host_ID": "0"
+                },
+                "SMART": {
+                    "Identity": {
+                        "Device type": "disk",
+                        "Logical block size": "512 bytes",
+                        "Product": "MR9361-8i",
+                        "Revision": "4.20",
+                        "SMART support is": "Unavailable - device lacks SMART capability.",
+                        "Serial number": "0036acee028fd5fc1de09df708b00506",
+                        "User Capacity": "1,198,597,865,472 bytes [1.19 TB]",
+                        "Vendor": "LSI"
+                    }
+                }
+            },
+            {
+                "Controller": {
+                    "controller_PCI_BDF": "0000:03:00.0",
+                    "controller_name": "LSI Logic / Symbios Logic MegaRAID SAS-3 3108 [Invader] (rev 02)",
+                    "host_ID": "0"
+                },
+                "SMART": {
+                    "Identity": {
+                        "Logical block size": "512 bytes",
+                        "Physical block size": "4096 bytes",
+                        "Product": "HUSMM1640ASS200",
+                        "Revision": "A204",
+                        "Rotation Rate": "Solid State Device",
+                        "Serial number": "0QV6E90A",
+                        "Transport protocol": "SAS",
+                        "User Capacity": "400,088,457,216 bytes [400 GB]",
+                        "Vendor": "HGST"
+                    }
+                }
+            },
+            {
+                "Controller": {
+                    "controller_PCI_BDF": "0000:03:00.0",
+                    "controller_name": "LSI Logic / Symbios Logic MegaRAID SAS-3 3108 [Invader] (rev 02)",
+                    "host_ID": "0"
+                },
+                "SMART": {
+                    "Identity": {
+                        "Logical block size": "512 bytes",
+                        "Product": "HUC109090CSS600",
+                        "Revision": "A5B0",
+                        "Rotation Rate": "10020 rpm",
+                        "Serial number": "W8G3MUUX",
+                        "Transport protocol": "SAS",
+                        "User Capacity": "900,185,481,216 bytes [900 GB]",
+                        "Vendor": "HITACHI"
+                    }
+                }
             }
         ]
     };
@@ -779,18 +856,85 @@ describe('Redfish Systems Root', function () {
         }
     };
 
-
     var smartCatalog = [
         {
+            Controller: {
+                controller_PCI_BDF: "0000:00:01.1",
+                controller_name: "LSI Logic / Symbios Logic MegaRAID SAS-3 3108 [Invader] (rev 02)",
+                host_ID: 0
+            },
             SMART: {
                 Identity: {
+                    "Device type": "disk",
+                    "Logical block size": "512 bytes",
+                    "Product": "MR9361-8i",
+                    "Revision": "4.20",
+                    "SMART support is": "Unavailable - device lacks SMART capability.",
+                    "Serial number": "0036acee028fd5fc1de09df708b00506",
+                    "User Capacity": "1,198,597,865,472 bytes [1.19 TB]",
+                    "Vendor": "LSI"
                 }
-            },
+            }
+        },
+        {
             Controller: {
-                controller_PCI_BDF : "0000:00:01.1"
+                controller_PCI_BDF: "0000:00:01.1",
+                controller_name: "LSI Logic / Symbios Logic MegaRAID SAS-3 3108 [Invader] (rev 02)",
+                 host_ID: 0
+            },
+            SMART: {
+                Identity: {
+                    "Logical block size": "512 bytes",
+                    "Physical block size": "4096 bytes",
+                    "Product": "HUSMM1640ASS200",
+                    "Revision": "A204",
+                    "Rotation Rate": "Solid State Device",
+                    "Serial number": "0QV6E90A",
+                    "Transport protocol": "SAS",
+                    "User Capacity": "400,088,457,216 bytes [400 GB]",
+                    "Vendor": "HGST"
+                }
+            }
+        },
+        {
+            Controller: {
+                controller_PCI_BDF: "0000:00:01.1",
+                controller_name: "LSI Logic / Symbios Logic MegaRAID SAS-3 3108 [Invader] (rev 02)",
+                host_ID: 0
+            },
+            SMART: {
+                Identity: {
+                    "Logical block size": "512 bytes",
+                    "Product": "HUC109090CSS600",
+                    "Revision": "A5B0",
+                    "Rotation Rate": "10020 rpm",
+                    "Serial number": "W8G3MUUX",
+                    "Transport protocol": "SAS",
+                    "User Capacity": "900,185,481,216 bytes [900 GB]",
+                    "Vendor": "HITACHI"
+                }
+            }
+        },
+        {
+            Controller: {
+                controller_PCI_BDF: "0000:00:1f.2",
+                controller_name: "Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)",
+                host_ID: 5
+            },
+            SMART: {
+                Identity: {
+                    "Device Model": "SATADOM-SH TYPE C 3SE",
+                    "Firmware Version": "S130710",
+                    "Rotation Rate": "Solid State Device",
+                    "SATA Version is": "SATA 3.0, 6.0 Gb/s (current: 6.0 Gb/s)",
+                    "Sector Size": "512 bytes logical/physical",
+                    "Serial Number": "20151007AA851172502C",
+                    "User Capacity": "32,017,047,552 bytes [32.0 GB]"
+                }
             }
         }
     ];
+
 
     var wsmanSelLog = [
         {
@@ -854,92 +998,162 @@ describe('Redfish Systems Root', function () {
             });
     });
 
-    it('should return a valid system', function() {
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: node.id,
-            source: 'dummysource',
-            data: catalogData
-        }));
-
-        waterline.workitems.findPollers.resolves([{
-            config: { command: 'chassis' }
-        }]);
-
-        taskProtocol.requestPollerCache.resolves([{
-            chassis: { power: "Unknown", uid: "Reserved"}
-        }]);
-
-        return helper.request().get('/redfish/v1/Systems/' + node.id)
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
+    describe('Get Systems By Indentifier', function () {
+        beforeEach('set up mocks', function(){
+            this.sandbox.stub(redfish, 'getVendorNameById');
+        });
+        it('should return a valid system', function() {
+            redfish.getVendorNameById.resolves({
+                node: node,
+                vendor: 'undefined'
             });
-    });
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
+                node: node.id,
+                source: 'dummysource',
+                data: catalogData
+            }));
 
-    it('should return a valid system for device with DELL catalogs', function() {
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: dellNode.id,
-            source: 'dummysource',
-            data: dellCatalogData
-        }));
+            waterline.workitems.findPollers.resolves([{
+                config: { command: 'chassis' }
+            }]);
 
-        waterline.workitems.findPollers.resolves([{
-            config: { command: 'chassis' }
-        }]);
+            taskProtocol.requestPollerCache.resolves([{
+                chassis: { power: "Unknown", uid: "Reserved"}
+            }]);
 
-        taskProtocol.requestPollerCache.resolves([{
-            chassis: { power: "Unknown", uid: "Reserved"}
-        }]);
+            return helper.request().get('/redfish/v1/Systems/' + node.id)
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
 
-        return helper.request().get('/redfish/v1/Systems/' + dellNode.id)
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
+        it('should return a valid system for device with DELL catalogs', function() {
+            redfish.getVendorNameById.resolves({
+                node: dellNode,
+                vendor: 'Dell'
             });
-    });
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
+                node: dellNode.id,
+                source: 'dummysource',
+                data: dellCatalogData
+            }));
 
-    it('should return a valid system with sku', function() {
-        waterline.nodes.needByIdentifier.withArgs(node.id)
-        .resolves(Promise.resolve({
-            id: node.id,
-            name: node.id,
-            sku: 'sku-value'
-        }));
+            waterline.workitems.findPollers.resolves([{
+                config: { command: 'chassis' }
+            }]);
 
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: node.id,
-            source: 'dummysource',
-            data: catalogData
-        }));
+            taskProtocol.requestPollerCache.resolves([{
+                chassis: { power: "Unknown", uid: "Reserved"}
+            }]);
 
-        waterline.workitems.findPollers.resolves([{
-            config: { command: 'chassis' }
-        }]);
+            return helper.request().get('/redfish/v1/Systems/' + dellNode.id)
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
 
-        taskProtocol.requestPollerCache.resolves([{
-            chassis: { power: "Unknown", uid: "Reserved"}
-        }]);
-
-        return helper.request().get('/redfish/v1/Systems/' + node.id)
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
+        it('should return a valid system with sku', function() {
+            redfish.getVendorNameById.resolves({
+                node: node,
+                vendor: 'notDellAndCisco'
             });
-    });
+            waterline.nodes.needByIdentifier.withArgs(node.id)
+            .resolves(Promise.resolve({
+                id: node.id,
+                name: node.id,
+                sku: 'sku-value'
+            }));
 
-    it('should 404 an invalid system', function() {
-        return helper.request().get('/redfish/v1/Systems/bad' + node.id)
-            .expect('Content-Type', /^application\/json/)
-            .expect(404);
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
+                node: node.id,
+                source: 'dummysource',
+                data: catalogData
+            }));
+
+            waterline.workitems.findPollers.resolves([{
+                config: { command: 'chassis' }
+            }]);
+
+            taskProtocol.requestPollerCache.resolves([{
+                chassis: { power: "Unknown", uid: "Reserved"}
+            }]);
+
+            return helper.request().get('/redfish/v1/Systems/' + node.id)
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+
+       it('should return a valid  Cisco system', function() {
+            redfish.getVendorNameById.resolves({
+                node: ucsNode,
+                vendor: 'Cisco'
+            });
+
+            this.sandbox.stub(nodeApi, "getNodeCatalogSourceById");
+            nodeApi.getNodeCatalogSourceById.withArgs(ucsNode.id, 'UCS').resolves({
+                node: ucsNode.id,
+                source: 'UCS',
+                data: {
+                    "descr": "",
+                    "model": "UCSC-C220-M3S",
+                    "serial": "FCH1948V1NG",
+                    "vendor": "Cisco Systems Inc",
+                    "part_number": "74-9932-02",
+                    "uuid": "c3bef8a5-96a8-45d2-9a4d-f4c7da71942e",
+                    "num_of_cpus": 1,
+                    "total_memory": 256,
+                    "oper_power": "off"
+                }
+            });
+
+            nodeApi.getNodeCatalogSourceById.withArgs(ucsNode.id, "UCS:bios").resolves({
+                node: ucsNode.id,
+                source: 'UCS:bios',
+                data: {
+                    "revison":"0"
+                }
+            });
+            nodeApi.getNodeCatalogSourceById.withArgs(ucsNode.id, "UCS:locator-led").resolves({
+                node: ucsNode.id,
+                source: 'UCS:locator-led',
+                data: {
+                    "oper_state":"off"
+                }
+            });
+            return helper.request().get('/redfish/v1/Systems/' + ucsNode.id)
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+        it('should 404 an invalid system', function(){
+            redfish.getVendorNameById.resolves({
+                node: node,
+                vendor: 'Dell'
+            });
+            return helper.request().get('/redfish/v1/Systems/bad' + node.id)
+                .expect('Content-Type', /^application\/json/)
+                .expect(404)
+                .expect(function(err) {
+                    console.log(err.body.error['@Message.ExtendedInfo'][1].Message);
+                });
+        });
     });
 
     it('should 404 an invalid identifier for bios query', function() {
@@ -1033,9 +1247,22 @@ describe('Redfish Systems Root', function () {
             .expect(404);
     });
 
+    it('should 404 an invalid system for Bios.ResetBios', function() {
+        return helper.request().post('/redfish/v1/Systems/bad' + node.id + '/Bios.ResetBios')
+            .send({"target": {},"title": {}})
+            .expect('Content-Type', /^application\/json/)
+            .expect(404);
+    });
+
     it('should 404 an non-Dell system for Bios.ChangePassword post', function() {
         return helper.request().post('/redfish/v1/Systems/' + node.id + '/Bios.ChangePassword')
             .send({ PasswordName: "bogusname", OldPassword: "somepass", NewPassword: "newpass"})
+            .expect('Content-Type', /^application\/json/)
+            .expect(404);
+    });
+    it('should 404 non-Dell identifier for Bios.ResetBios', function() {
+        return helper.request().post('/redfish/v1/Systems/' + node.id + '/Bios.ResetBios')
+            .send({"Bios": {"Oem": {}},"target": {},"title": {}})
             .expect('Content-Type', /^application\/json/)
             .expect(404);
     });
@@ -1054,7 +1281,20 @@ describe('Redfish Systems Root', function () {
             .expect(202);
     });
 
-    it('should 202 for a Dell-based bios change password SetupPassword', function() {
+    it('should return a 202 for valid Dell identifier for Bios.ResetBios', function() {
+        configuration.set('httpEndpoints', httpEndpoints);
+        waterline.catalogs.findLatestCatalogOfSource.withArgs(dellNode.id, 'DeviceSummary').resolves(Promise.resolve({
+            node: dellNode.id,
+            source: 'DeviceSummary',
+            data: dellCatalogData.DeviceSummary
+        }));
+        return helper.request().post('/redfish/v1/Systems/' + dellNode.id + '/Bios.ResetBios')
+            .send({"target": {},"title": {}})
+            .expect('Content-Type', /^application\/json/)
+            .expect(202);
+    });
+
+    it('should return a 202 for a Dell-based bios change password SetupPassword', function() {
         // Force a southbound interface through httpEndpoints
         configuration.set('httpEndpoints', httpEndpoints);
         waterline.catalogs.findLatestCatalogOfSource.withArgs(dellNode.id, 'DeviceSummary').resolves(Promise.resolve({
@@ -1357,7 +1597,7 @@ describe('Redfish Systems Root', function () {
                     expect(redfish.render.called).to.be.true;
                 });
         });
-        
+
         it('should return a valid processor list for Dell node', function() {
             waterline.catalogs.findLatestCatalogOfSource.resolves({
                 node: 'DELLabcd1234abcd1234abcd',
@@ -1374,7 +1614,7 @@ describe('Redfish Systems Root', function () {
                     expect(redfish.render.called).to.be.true;
                 });
         });
-    
+
         it('should return a valid processor list for non-DELL/Ucs nodes', function() {
             waterline.catalogs.findLatestCatalogOfSource.resolves({
                 node: '1234abcd1234abcd1234abcd',
@@ -1410,146 +1650,610 @@ describe('Redfish Systems Root', function () {
         });
     });
 
-    it('should return a valid processor for a DELL node', function() {
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: '1234abcd1234abcd1234abcd',
-            source: 'dummysource',
-            data: dellCatalogData
-        }));
-
-        return helper.request().get('/redfish/v1/Systems/' + dellNode.id + '/Processors/0')
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
-            });
-    });
 
 
-    it('should return a valid processori for a non-DELL node', function() {
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: '1234abcd1234abcd1234abcd',
-            source: 'dummysource',
-            data: catalogData
-        }));
 
-        return helper.request().get('/redfish/v1/Systems/' + node.id + '/Processors/0')
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
-            });
-    });
+    describe('/redfish/v1/Systems/<identifier>/Processors/{socketId}', function(){
+        var ucsNode;
+        var ucsCatalog;
+        var ucsProcessorInfo;
+        var dellProcessorInfo;
+        var redfishProcessorInfo;
 
-    it('should 404 an invalid processor', function() {
-        return helper.request().get('/redfish/v1/Systems/' + node.id + '/Processors/bad')
-            .expect('Content-Type', /^application\/json/)
-            .expect(404);
+        beforeEach('set up mock for Processors', function() {
+            this.sandbox.stub(redfish, 'getVendorNameById');
+        });
+
+        before('/redfish/v1/Systems/<identifier>/Processors/{socketId} before', function(){
+            ucsNode = {
+                id : "59a59317f4c25e4d18e6073c",
+                autoDiscover : false,
+                identifiers : [
+                    "10.240.19.70:sys/chassis-1"
+                ],
+                name : "sys/cisconode",
+                relations : [
+                    {
+                        relationType : "encloses",
+                        targets : [ "599444b0303bbe8c07ef004e" ]
+                    }
+                ],
+                tags : [ ],
+                type : "enclosure"
+            };
+
+            ucsCatalog = {
+                node: "59a59317f4c25e4d18e6073c",
+                source : "UCS:board",
+                data : {
+                    "child_action": null,
+                    "cmos_voltage": "ok",
+                    "cpu_type_description": "ivy-bridge",
+                    "children": {
+                        "cpu-collection":[
+                            {
+                                "arch": "Xeon",
+                                "cores": "4",
+                                "cores_enabled": "4",
+                                "dn": "sys/rack-unit-1/board/cpu-2",
+                                "id": "2",
+                                "model": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
+                                "revision": "0",
+                                "rn": "cpu-2",
+                                "socket_designation": "CPU2",
+                                "speed": "0.002",
+                                "status": null,
+                                "stepping": "8",
+                                "threads": "20",
+                                "vendor": "Intel(R) Corporation",
+                            },
+                            {
+                                "arch": "Xeon",
+                                "cores": "4",
+                                "cores_enabled": "4",
+                                "dn": "sys/rack-unit-1/board/cpu-1",
+                                "id": "1",
+                                "model": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
+                                "revision": "0",
+                                "rn": "cpu-1",
+                                "sacl": null,
+                                "socket_designation": "CPU1",
+                                "speed": "0.002",
+                                "status": null,
+                                "stepping": "8",
+                                "threads": "8",
+                                "vendor": "Intel(R) Corporation",
+                            }
+                        ]
+                    },
+                    "dn": "sys/rack-unit-1/board",
+                    "id": "0",
+                    "location_dn": "",
+                    "model": "UCSC-C220-M3S",
+                    "revision": "0",
+                    "rn": "board",
+                    "serial": "FCH1948V1Q9",
+                    "status": null,
+                    "vendor": "Cisco Systems Inc",
+                }
+            };
+
+            ucsProcessorInfo = {
+                "@odata.context": "/redfish/v1/$metadata#Processor.Processor",
+                "@odata.id": "/redfish/v1/Systems/59a59317f4c25e4d18e6073c/Processors/0",
+                "@odata.type": "#Processor.v1_0_0.Processor",
+                "Oem": {},
+                "Id": "0",
+                "Name": "",
+                "Socket": "CPU1",
+                "ProcessorType": "CPU",
+                "ProcessorArchitecture": "x86",
+                "InstructionSet": "x86-64",
+                "Manufacturer": "Intel(R) Corporation",
+                "Model": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
+                "MaxSpeedMHz": 2400,
+                "TotalCores": 4,
+                "TotalThreads": 8,
+                "Status": {},
+                "ProcessorId": {
+                  "VendorId": "Intel(R) Corporation",
+                  "IdentificationRegisters": "",
+                  "EffectiveFamily": "Xeon",
+                  "EffectiveModel": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
+                  "Step": "8",
+                  "MicrocodeInfo": ""
+                }
+            };
+
+            dellProcessorInfo = {
+                '@odata.context': '/redfish/v1/$metadata#Processor.Processor',
+                '@odata.id': '/redfish/v1/Systems/DELLabcd1234abcd1234abcd/Processors/0',
+                '@odata.type': '#Processor.v1_0_0.Processor',
+                Oem: {},
+                Id: '0',
+                Name: '',
+                Socket: 'CPU 1',
+                ProcessorType: 'CPU',
+                ProcessorArchitecture: 'x86',
+                InstructionSet: 'x86-64',
+                Manufacturer: 'Intel',
+                Model: 'Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz',
+                MaxSpeedMHz: 4000,
+                TotalCores: 12,
+                TotalThreads: 24,
+                Status: {},
+                ProcessorId: {
+                    VendorId: 'Intel',
+                    IdentificationRegisters: '',
+                    EffectiveFamily: 'B3',
+                    EffectiveModel: 'Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz',
+                    Step: '',
+                    MicrocodeInfo: ''
+                }
+            };
+
+            redfishProcessorInfo = {
+                '@odata.context': '/redfish/v1/$metadata#Processor.Processor',
+                '@odata.id': '/redfish/v1/Systems/1234abcd1234abcd1234abcd/Processors/0',
+                '@odata.type': '#Processor.v1_0_0.Processor',
+                Oem: {},
+                Id: '0',
+                Name: '',
+                Socket: 'test',
+                ProcessorType: 'CPU',
+                ProcessorArchitecture: 'x86',
+                InstructionSet: 'x86-64',
+                Manufacturer: 'test',
+                Model: 'Intel(R) Xeon(R) CPU E5-2650 v3 @ 2.30GHz',
+                MaxSpeedMHz: 2300,
+                TotalCores: 10,
+                TotalThreads: 20,
+                Status: {},
+                ProcessorId: {
+                    VendorId: 'test',
+                    IdentificationRegisters: 'test',
+                    EffectiveFamily: 'test',
+                    EffectiveModel: 'Intel(R) Xeon(R) CPU E5-2650 v3 @ 2.30GHz',
+                    Step: '',
+                    MicrocodeInfo: ''
+                }
+            };
+
+        });
+
+        it('should return an error when get system vendor fails', function() {
+            redfish.getVendorNameById.rejects('ERROR');
+            return helper.request().get('/redfish/v1/Systems/' + dellNode.id + '/Processors/0')
+                .expect('Content-Type', /^application\/json/)
+                .expect(500)
+                .expect(function() {
+                    expect(redfish.handleError.called).to.be.true;
+                });
+        });
+
+        it('should return a valid processor for a DELL node', function() {
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
+                node: 'Dell1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: dellCatalogData
+            }));
+            redfish.getVendorNameById.resolves({vendor: 'Dell'});
+
+            return helper.request().get('/redfish/v1/Systems/' + dellNode.id + '/Processors/0')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function(data) {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                    expect(data.body).to.be.deep.equal(dellProcessorInfo);
+                });
+        });
+
+        it('should throw an invalid socketId for a DELL node', function() {
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: dellCatalogData
+            }));
+            redfish.getVendorNameById.resolves({vendor: 'Dell'});
+
+            return helper.request().get('/redfish/v1/Systems/' + dellNode.id + '/Processors/100')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404)
+                .expect(function(err) {
+                    expect(err.body.error['@Message.ExtendedInfo'][1].Message).to.be.equal('invalid socketId');
+                });
+        });
+
+        it('should return a valid processor for a Cisco node', function() {
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve(ucsCatalog));
+            waterline.nodes.needByIdentifier.withArgs(ucsNode.id).resolves(Promise.resolve(ucsNode));
+            redfish.getVendorNameById.resolves({vendor: 'Cisco'});
+
+            return helper.request().get('/redfish/v1/Systems/' + ucsNode.id + '/Processors/0')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function(data) {
+                    expect(data.body).to.be.deep.equal(ucsProcessorInfo);
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+
+        it('should throw an invalid socketId error for Cisco Node', function() {
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve(ucsCatalog));
+            waterline.nodes.needByIdentifier.withArgs(ucsNode.id).resolves(Promise.resolve(ucsNode));
+            redfish.getVendorNameById.resolves({vendor: 'Cisco'});
+
+            return helper.request().get('/redfish/v1/Systems/' + ucsNode.id + '/Processors/100')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404)
+                .expect(function(err) {
+                    expect(err.body.error["@Message.ExtendedInfo"][1].Message).to.be.equal('invalid socketId');
+                });
+        });
+
+
+        it('should return a valid processor for a non-DELL&non-Cisco node', function() {
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: catalogData
+            }));
+            waterline.nodes.needByIdentifier.withArgs(node.id).resolves(Promise.resolve(node));
+            redfish.getVendorNameById.resolves({vendor: 'other'});
+
+            return helper.request().get('/redfish/v1/Systems/' + node.id + '/Processors/0')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function(data) {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                    expect(data.body).to.be.deep.equal(redfishProcessorInfo);
+                });
+        });
+
+        it('should return an invalid socketId for a non-DELL&non-Cisco node', function() {
+            waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: catalogData
+            }));
+            waterline.nodes.needByIdentifier.withArgs(node.id).resolves(Promise.resolve(node));
+            redfish.getVendorNameById.resolves({vendor: 'other'});
+
+            return helper.request().get('/redfish/v1/Systems/' + node.id + '/Processors/100')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404)
+                .expect(function(err) {
+                    expect(err.body.error["@Message.ExtendedInfo"][1].Message).to.be.equal('invalid socketId');
+                });
+        });
+
+        it('should 404 an invalid processor', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Dell'});
+            return helper.request().get('/redfish/v1/Systems/' + node.id + '/Processors/bad')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
+
+        it('should 404 an invalid processor', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Cisco'});
+            return helper.request().get('/redfish/v1/Systems/' + node.id + '/Processors/bad')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
+
+        it('should 404 an invalid processor', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Other'});
+            return helper.request().get('/redfish/v1/Systems/' + node.id + '/Processors/bad')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
+
     });
 
     /*
         **** simple storage
     */
+    describe('/redfish/v1/Systems/<identifier>/SimpleStorage', function() {
+        var ucsNode;
+        var ucsCatalog;
+        var ucsSimpleStorageInfo;
 
-    it('should return a valid simple storage list', function() {
-        waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart').resolves(Promise.resolve({
-            node: '1234abcd1234abcd1234abcd',
-            source: 'dummysource',
-            data: smartCatalog
-        }));
+        beforeEach('set up mock for /redfish/v1/Systems/<identifier>/SimpleStorage', function() {
+            this.sandbox.stub(redfish, 'getVendorNameById');
+        });
 
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: '1234abcd1234abcd1234abcd',
-            source: 'dummysource',
-            data: catalogData
-        }));
+        before('/redfish/v1/Systems/<identifier>/SimpleStorage', function() {
+            ucsNode = {
+                id: '599337d6ff99ed24305bc58b',
+                identifiers: ["10.240.19.70:sys/board"],
+            };
 
-        return helper.request().get('/redfish/v1/Systems/' + node.id + '/SimpleStorage')
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
+            ucsCatalog = {
+                "node" : "599337d6ff99ed24305bc58b",
+                "source" : "UCS:board",
+                "data" : {
+                    "vendor" : "Cisco Systems Inc",
+                    "children" : {
+                        "storage-SAS-collection" : [
+                            {
+                                "dn" : "sys/chassis-3/blade-7/board/storage-SAS-4",
+                                "id" : "4",
+                                "pci_addr" : "01:00.0",
+                                "pci_slot" : "SAS"
+                            },
+                            {
+                                "dn" : "sys/chassis-3/blade-7/board/storage-SAS-1",
+                                "id" : "1",
+                                "pci_addr" : "01:00.0",
+                                "pci_slot" : "SAS"
+                            }
+                        ],
+                        "storage-PCH-collection" : [
+                            {
+                                "dn" : "sys/chassis-3/blade-7/board/storage-PCH-1",
+                                "id" : "1",
+                                "pci_addr" : "01:00.0",
+                                "pci_slot" : "PCH"
+                            }
+                        ],
+                        "storage-FlexFlash-collection" : [
+                            {
+                                "dn" : "sys/chassis-3/blade-7/board/storage-FlexFlash-1",
+                                "id" : "1",
+                                "pci_addr" : "01:00.0",
+                                "pci_slot" : "FlexFlash"
+                            }
+                        ]
+                    }
+               }
+            };
+
+            ucsSimpleStorageInfo = {
+                "@odata.context": "/redfish/v1/$metadata#SimpleStorageCollection.SimpleStorageCollection",
+                "@odata.id": "/redfish/v1/Systems/599337d6ff99ed24305bc58b/SimpleStorage",
+                "@odata.type": "#SimpleStorageCollection.SimpleStorageCollection",
+                "Oem": {},
+                "Name": "Simple Storage Collection",
+                "Members@odata.count": 4,
+                "Members": [
+                    {
+                      "@odata.id": "/redfish/v1/Systems/599337d6ff99ed24305bc58b/SimpleStorage/SAS_01_00_0_4"
+                    },
+                    {
+                      "@odata.id": "/redfish/v1/Systems/599337d6ff99ed24305bc58b/SimpleStorage/SAS_01_00_0_1"
+                    },
+                    {
+                      "@odata.id": "/redfish/v1/Systems/599337d6ff99ed24305bc58b/SimpleStorage/PCH_01_00_0_1"
+                    },
+                    {
+                      "@odata.id": "/redfish/v1/Systems/599337d6ff99ed24305bc58b/SimpleStorage/FlexFlash_01_00_0_1"
+                    }
+                ]
+            };
+
+        });
+
+        it('should return an error when get system vendor fails', function() {
+            redfish.getVendorNameById.rejects('ERROR');
+            return helper.request().get('/redfish/v1/Systems/' + ucsNode.id + '/SimpleStorage')
+                .expect('Content-Type', /^application\/json/)
+                .expect(500)
+                .expect(function() {
+                    expect(redfish.handleError.called).to.be.true;
+                });
+        });
+
+        it('should return a valid Cisco simple storage list', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Cisco'});
+            waterline.nodes.needByIdentifier.withArgs(ucsNode.id).resolves(ucsNode);
+            waterline.catalogs.findLatestCatalogOfSource.resolves(ucsCatalog);
+
+            return helper.request().get('/redfish/v1/Systems/' + ucsNode.id + '/SimpleStorage')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function(data) {
+                    expect(data.body).to.be.deep.equal(ucsSimpleStorageInfo);
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+
+        it('should return a valid simple storage list for devices with DELL catalogs', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Dell'});
+            waterline.catalogs.findLatestCatalogOfSource.resolves({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: dellCatalogData
             });
-    });
 
-    it('should return a valid simple storage list for devices with DELL catalogs', function() {
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: '1234abcd1234abcd1234abcd',
-            source: 'dummysource',
-            data: dellCatalogData
-        }));
+            return helper.request().get('/redfish/v1/Systems/' + dellNode.id + '/SimpleStorage')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
 
-        return helper.request().get('/redfish/v1/Systems/' + dellNode.id + '/SimpleStorage')
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
-
+        it('should return a valid simple storage list for non-Dell & non-Cisco catalogs', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Other'});
+            waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart').resolves({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: smartCatalog
             });
-    });
 
-    it('should 404 an invalid simple storage', function() {
-        return helper.request().get('/redfish/v1/Systems/bad' + node.id + '/SimpleStorage')
-            .expect('Content-Type', /^application\/json/)
-            .expect(404);
-    });
-
-    it('should return a valid simple storage device', function() {
-        waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart')
-        .resolves(Promise.resolve({
-            node: '1234abcd1234abcd1234abcd',
-            source: 'dummysource',
-            data: smartCatalog
-        }));
-
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: '1234abcd1234abcd1234abcd',
-            source: 'dummysource',
-            data: catalogData
-        }));
-
-        return helper.request().get('/redfish/v1/Systems/' + node.id +
-                                    '/SimpleStorage/0000_00_01_1')
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
+            waterline.catalogs.findLatestCatalogOfSource.resolves({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: catalogData
             });
+
+            return helper.request().get('/redfish/v1/Systems/' + node.id + '/SimpleStorage')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+
+        it('should 404 an invalid simple storage for Dell node', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Dell'});
+            waterline.nodes.needByIdentifier.rejects(new Errors.NotFoundError('No node found'));
+
+            return helper.request().get('/redfish/v1/Systems/' + dellNode.id + '/SimpleStorage')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
+
+        it('should 404 an invalid simple storage for Cisco node', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Cisco'});
+            waterline.nodes.needByIdentifier.rejects(new Errors.NotFoundError('No node found'));
+
+            return helper.request().get('/redfish/v1/Systems/' + ucsNode.id + '/SimpleStorage')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
+
+        it('should 404 an invalid simple storage for non-Dell & non-Cisco node', function() {
+            redfish.getVendorNameById.resolves({vendor: 'Other'});
+            waterline.nodes.needByIdentifier.rejects(new Errors.NotFoundError('No node found'));
+
+            return helper.request().get('/redfish/v1/Systems/' + node.id + '/SimpleStorage')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
     });
 
-    it('should return a valid simple storage device for devices with DELL catalogs', function() {
-        waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
-            node: dellNode.id,
-            source: 'dummysource',
-            data: dellCatalogData
-        }));
-
-        return helper.request().get('/redfish/v1/Systems/' + dellNode.id +
-                                    '/SimpleStorage/RAID_Integrated_1-1')
-            .expect('Content-Type', /^application\/json/)
-            .expect(200)
-            .expect(function() {
-                expect(tv4.validate.called).to.be.true;
-                expect(validator.validate.called).to.be.true;
-                expect(redfish.render.called).to.be.true;
+    describe('Get simple storage device', function(){
+        it('should return a valid simple storage device', function() {
+            waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart')
+            .resolves({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: smartCatalog
             });
+
+            waterline.catalogs.findLatestCatalogOfSource.resolves({
+                node: '1234abcd1234abcd1234abcd',
+                source: 'dummysource',
+                data: catalogData
+            });
+
+            return helper.request().get('/redfish/v1/Systems/' + node.id +
+                                        '/SimpleStorage/0000_00_01_1')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+
+        it('should return a valid simple storage device for devices with DELL catalogs', function() {
+            waterline.catalogs.findLatestCatalogOfSource.resolves({
+                node: dellNode.id,
+                source: 'dummysource',
+                data: dellCatalogData
+            });
+
+            return helper.request().get('/redfish/v1/Systems/' + dellNode.id +
+                                        '/SimpleStorage/RAID_Integrated_1-1')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+
+        it('should 404 an invalid simple storage device', function() {
+            return helper.request().get('/redfish/v1/Systems/' + ucsNode.id +
+                                        '/SimpleStorage/bad')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
+
     });
 
-    it('should 404 an invalid simple storage device', function() {
-        return helper.request().get('/redfish/v1/Systems/' + node.id +
-                                    '/SimpleStorage/bad')
-            .expect('Content-Type', /^application\/json/)
-            .expect(404);
+    describe('Get Cisco valid simple storage device', function(){
+        beforeEach('set up mocks', function(){
+            this.sandbox.stub(redfish, 'getVendorNameById');
+            this.sandbox.stub(nodeApi, "getNodeCatalogSourceById");
+        });
+        afterEach('restore sanbox', function(){
+            this.sandbox.restore();
+        });
+
+        it('should return a valid simple storage device with valid contoller', function(){
+            redfish.getVendorNameById.resolves({
+                node: node,
+                vendor: 'Cisco'
+            });
+            nodeApi.getNodeCatalogSourceById.withArgs(ucsNode.id, 'UCS:board').resolves({
+                node: ucsNode.id,
+                source: 'UCS:board',
+                data:{
+                    'children' : {
+                        'storage-SAS-collection' : [{
+                            'id': '1',
+                            'model': 'LSI 6G MegaRAID 9265-8i',
+                            'pci_addr': '01:00.0',
+                            'children': {
+                                'disk-collection': [{
+                                    'revision': '0',
+                                    'size': '381941995283',
+                                    'serial': 'SRVDISK183',
+                                    'device_type': '',
+                                    'rn': 'disk-2',
+                                    'vendor': 'TOSHIBA',
+                                    'model': 'PX02SMU040'
+                                }]
+                            }
+                        }]
+                    }
+                }
+            });
+            return helper.request().get('/redfish/v1/Systems/'+ucsNode.id+
+
+                                        '/SimpleStorage/SAS_01_00_0_1')
+                .expect('Content-Type', /^application\/json/)
+                .expect(200)
+                .expect(function() {
+                    expect(tv4.validate.called).to.be.true;
+                    expect(validator.validate.called).to.be.true;
+                    expect(redfish.render.called).to.be.true;
+                });
+        });
+        it('should return a invalid simple storage device with undefined controller', function(){
+            redfish.getVendorNameById.resolves({
+                node: node,
+                vendor: 'Cisco'
+            });
+            nodeApi.getNodeCatalogSourceById.withArgs(ucsNode.id, 'UCS:board').resolves({
+                node: ucsNode.id,
+                source: 'UCS:board',
+                data: {
+                    children: {}
+                }
+            });
+            return helper.request().get('/redfish/v1/Systems/'+ucsNode.id+
+                                        '/SimpleStorage/sas111_01_00_0_1')
+                .expect('Content-Type', /^application\/json/)
+                .expect(404);
+        });
     });
 
     /*
@@ -1932,7 +2636,7 @@ describe('Redfish Systems Root', function () {
 
     it('should return valid SecureBoot status', function() {
         racadm.runCommand.resolves("test=SecureBoot=Disabled");
-        return helper.request().get('/redfish/v1/Systems/'+ node.id +'/SecureBoot')
+        return helper.request().get('/redfish/v1/Systems/'+ dellNode.id +'/SecureBoot')
             .expect('Content-Type', /^application\/json/)
             .expect(200)
             .expect(function() {
@@ -1942,11 +2646,11 @@ describe('Redfish Systems Root', function () {
             });
     });
 
-    it('should 500 on bad racadm command', function() {
+    it('should 501 on unsupported URI command', function() {
         racadm.runCommand.rejects("ERROR");
         return helper.request().get('/redfish/v1/Systems/'+ node.id +'/SecureBoot')
             .expect('Content-Type', /^application\/json/)
-            .expect(500);
+            .expect(501);
     });
 
     it('should return 202 after setting Secure Boot', function() {
@@ -2206,6 +2910,44 @@ describe('Redfish Systems Root', function () {
             });
     });
 
+
+   it('should return a valid storage drive with non-DELL catalogs', function () {
+        waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart').resolves(Promise.resolve({
+            node: node.id,
+            source: 'dummysource',
+            data: smartCatalog
+        }));
+
+        return helper.request().get('/redfish/v1/Systems/' + node.id +
+            '/Storage/0000_00_01_1/Drives/W8G3MUUX')
+            .expect('Content-Type', /^application\/json/)
+            .expect(200)
+            .expect(function () {
+                expect(tv4.validate.called).to.be.true;
+                expect(validator.validate.called).to.be.true;
+                expect(redfish.render.called).to.be.true;
+            });
+    });
+
+
+   it('should return a valid storage drive with non-DELL catalogs (SATADOM)', function () {
+        waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart').resolves(Promise.resolve({
+            node: node.id,
+            source: 'dummysource',
+            data: smartCatalog
+        }));
+
+        return helper.request().get('/redfish/v1/Systems/' + node.id +
+            '/Storage/0000_00_1f_2/Drives/20151007AA851172502C')
+            .expect('Content-Type', /^application\/json/)
+            .expect(200)
+            .expect(function () {
+                expect(tv4.validate.called).to.be.true;
+                expect(validator.validate.called).to.be.true;
+                expect(redfish.render.called).to.be.true;
+            });
+    });
+
     it('should return a valid volume list for devices with DELL catalogs', function() {
         waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({
             node: dellNode.id,
@@ -2223,6 +2965,35 @@ describe('Redfish Systems Root', function () {
                 expect(redfish.render.called).to.be.true;
             });
     });
+
+   it('should 404 requests for volumes from devices with non-DELL (wsman) catalogs', function () {
+        waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart').resolves(Promise.resolve({
+            node: node.id,
+            source: 'dummysource',
+            data: smartCatalog
+        }));
+
+        return helper.request().get('/redfish/v1/Systems/' + node.id +
+            '/Storage/0000_00_01_1/Volumes')
+            .expect('Content-Type', /^application\/json/)
+            .expect(404);
+    });
+
+   it('should 404 requests for specific volumes from devices with non-DELL (wsman) catalogs', function () {
+        waterline.catalogs.findLatestCatalogOfSource.withArgs(node.id, 'smart').resolves(Promise.resolve({
+            node: node.id,
+            source: 'dummysource',
+            data: smartCatalog
+        }));
+
+        return helper.request().get('/redfish/v1/Systems/' + node.id +
+            '/Storage/0000_00_01_1/Volumes/0036acee028fd5fc1de09df708b00506')
+            .expect('Content-Type', /^application\/json/)
+            .expect(404);
+    });
+
+
+
 
     it('should return a valid volume for devices with DELL catalogs', function() {
         waterline.catalogs.findLatestCatalogOfSource.resolves(Promise.resolve({

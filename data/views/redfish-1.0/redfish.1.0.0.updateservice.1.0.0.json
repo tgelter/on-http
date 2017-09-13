@@ -1,7 +1,7 @@
 {
     "@odata.context" : "<%= basepath %>/$metadata#UpdateService.UpdateService",
     "@odata.id": "<%= url %>",
-    "@odata.type": "#UpdateService.v1_0_0.UpdateService",
+    "@odata.type": "#UpdateService.v1_0_1.UpdateService",
     "Oem": {},
     "Id": "UpdateService",
     "Description": "Update Service",
@@ -10,10 +10,13 @@
         "State":"Enabled"
     },
     "ServiceEnabled": true,
+    "Actions": {
+        "Oem": {},
+        "#UpdateService.SimpleUpdate": {
+            "target": "<%=basepath%>/UpdateService/Actions/UpdateService.SimpleUpdate"
+        }
+    },
     "FirmwareInventory" : {
         "@odata.id": "<%= basepath %>/UpdateService/FirmwareInventory"
-    },
-    "SoftwareInventory" : {
-        "@odata.id": "<%= basepath %>/UpdateService/SoftwareInventory"
     }
 }

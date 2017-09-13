@@ -1,40 +1,31 @@
 {
     "@odata.context" : "<%= basepath %>/$metadata#ComputerSystem.ComputerSystem",
     "@odata.id": "<%= url %>",
-    "@odata.type": "#ComputerSystem.v1_0_0.ComputerSystem",
+    "@odata.type": "#ComputerSystem.v1_3_0.ComputerSystem",
     "Oem" : {},
     "Id": "<%= identifier %>",
-    "Description": "",
+    "Description": "<%= hardware.data.descr %>",
     "Name": "Computer System",
     "SystemType": "<%= systemType %>",
-    "AssetTag": "<%= catData.dmi.chassis.asset_tag %>",
-    "Manufacturer": "<%= catData.dmi.system.Manufacturer %>",
-    "Model": "<%= catData.dmi.system.product_name %>",
-    "SKU": "<%= catData.dmi.system.sku_number %>",
-    "SerialNumber": "<%= catData.dmi.system.serial_number %>",
-    "PartNumber": "",
-    "UUID": "<%= catData.dmi.system.uuid.toLowerCase() %>",
+    "AssetTag": "",
+    "Manufacturer": "<%= hardware.data.vendor %>",
+    "Model": "<%= hardware.data.model %>",
+    "SKU": "<%= skuInfo %>",
+    "SerialNumber": "<%= hardware.data.serial %>",
+    "PartNumber": "<%= hardware.data.part_number %>",
+    "UUID": "<%= hardware.data.uuid %>",
     "HostName": "",
-    "IndicatorLED": "<%= chassisData.uid %>",
-    "PowerState": "<%= chassisData.power==='Unknown' ? 'On' : chassisData.power %>",
+    "IndicatorLED": "<%= led.data.oper_state === 'on'?'Lit':'Off' %>",
+    "PowerState": "<%= hardware.data.oper_power.charAt(0).toUpperCase() + hardware.data.oper_power.slice(1) %>",
     "Boot": {},
-    "BiosVersion": "<%= catData.dmi.bios.version.trim() %> <%= catData.dmi.bios.bios_revision.trim() %> <%= catData.dmi.bios.release_date.trim() %>",
+    "BiosVersion": "<%= bios.data.revision %>",
     "ProcessorSummary": {
-        "Count": <%= catData.cpu.real %>,
-        "Model": "<%= catData.dmi.processor.version %>",
+        "Count": <%= hardware.data.num_of_cpus %>,
+        "Model": "",
         "Status": {}
     },
     "MemorySummary": {
-        <% var memsize = 0; %>
-        <% catData['Memory Device'].forEach(function(dev) { %>
-        <%     var size = dev.Size.split(' ')[0]; %>
-        <%     var units = dev.Size.split(' ')[1]; %>
-        <%     size = isNaN(size) ? 0 : size; %>
-        <%     size = (units === 'GB') ? size * 1024 : size; %>
-        <%     memsize = memsize + parseInt(size); %>
-        <% }); %>
-        <% memsize = memsize / 1024; %>
-        "TotalSystemMemoryGiB": <%= memsize %>,
+        "TotalSystemMemoryGiB": <%= hardware.data.total_memory>>10 %>,
         "Status": {}
     },
     "Actions": {
@@ -49,7 +40,7 @@
             "target": "<%=basepath%>/Systems/<%=identifier%>/Actions/ComputerSystem.Reset"
         }
     },
-    "Status": {},
+    "Status": {},    
     "Processors": {
         "@odata.id": "<%= basepath %>/Systems/<%= identifier %>/Processors"
     },
@@ -71,7 +62,7 @@
                     "@odata.id": "<%= basepath %>/Managers/<%= obm %>"
                 }
                 <%= ( arr.length > 0 && i < arr.length-1 ) ? ',': '' %>
-            <% }); %>
+            <%  }); %>
         ],
         "PoweredBy@odata.count": 0,
         "PoweredBy": [],
@@ -83,8 +74,11 @@
                 {
                     "@odata.id": "<%= basepath %>/Chassis/<%= chassis %>"
                 }
-                <%= ( arr.length > 0 && i < arr.length-1 ) ? ',': '' %>
+                <%= ( arr.length > 0 && i < arr.length-1 ) ? ',': '' %>    
             <% }); %>
         ]
+    },
+    "Storage":{
+        "@odata.id": "<%= basepath %>/Systems/<%= identifier %>/Storage"
     }
 }

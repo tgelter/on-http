@@ -16,7 +16,7 @@ IGNITION_SCRIPT_FILE=ignition.json
   <% } else { %>
     curl -o ${IGNITION_SCRIPT_FILE} <%=ignitionScriptUri%>
   <% } %>
-    sed -i "s/$(ethtool -P eth0 | awk '{ print $3 }')/DC_MAC_ADDR/" ${IGNITION_SCRIPT_FILE}
+    sed -i "s/DC_MAC_ADDR/$(ethtool -P eth0 | awk '{ print $3 }')/" ${IGNITION_SCRIPT_FILE}
     sudo coreos-install -d <%=installDisk%> -i ${IGNITION_SCRIPT_FILE} -b <%=repo%>
 <% } else { %>
   sudo coreos-install -d <%=installDisk%> -c ${CLOUD_CONFIG_FILE} -b <%=repo%>

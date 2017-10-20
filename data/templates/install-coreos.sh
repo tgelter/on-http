@@ -12,7 +12,7 @@ curl -o $CLOUD_CONFIG_FILE http://<%=server%>:<%=port%>/api/current/templates/$C
 IGNITION_SCRIPT_FILE=ignition.json
   <% if (typeof vaultToken !== 'undefined') { %>
     curl -o ${IGNITION_SCRIPT_FILE}.tmp -X POST -d '' -H 'X-Vault-Token: <%=vaultToken%>' <%=ignitionScriptUri%>
-    jq '.data' ${IGNITION_SCRIPT_FILE}.tmp > ${IGNITION_SCRIPT_FILE}
+    jq '.data|(.ignition_data//.)' ${IGNITION_SCRIPT_FILE}.tmp > ${IGNITION_SCRIPT_FILE}
   <% } else { %>
     curl -o ${IGNITION_SCRIPT_FILE} <%=ignitionScriptUri%>
   <% } %>
